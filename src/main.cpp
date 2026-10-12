@@ -252,10 +252,13 @@ void handlePhysicalButtons() {
   bool ld = digitalRead(PIN_LEFT_DOWN) == LOW;
   bool ru = digitalRead(PIN_RIGHT_UP) == LOW;
   bool rd = digitalRead(PIN_RIGHT_DOWN) == LOW;
-  static bool prevAny = false;
+  static bool prevLeftAny = false;
+  static bool prevRightAny = false;
   static bool prevConflictLeft = false;
   static bool prevConflictRight = false;
-  bool any = lu || ld || ru || rd;
+  bool leftAny = lu || ld;
+  bool rightAny = ru || rd;
+  bool any = leftAny || rightAny;
 
   if (any && mode == MODE_AUTO) {
     mode = MODE_MANUAL;
@@ -264,6 +267,9 @@ void handlePhysicalButtons() {
   }
 
   if (mode != MODE_FAULT) {
+    // Physical input has priority while pressed. When released, stop only the
+    // actuator that was physically controlled; otherwise leave timed web
+    // commands alone so this 5 ms poll does not cancel them immediately.
     if (lu && ld) {
       stopActuator(leftTab);
       if (!prevConflictLeft) logEvent("Conflicting LEFT buttons: stopped");
@@ -271,7 +277,10 @@ void handlePhysicalButtons() {
       leftTab.direction = -1; leftTab.commandUntilMs = 0;
     } else if (ld) {
       leftTab.direction = 1; leftTab.commandUntilMs = 0;
-    } else stopActuator(leftTab);
+    } else if (prevLeftAny) {
+      stopActuator(leftTab);
+      logEvent("LEFT physical buttons released: stopped");
+    }
 
     if (ru && rd) {
       stopActuator(rightTab);
@@ -280,7 +289,10 @@ void handlePhysicalButtons() {
       rightTab.direction = -1; rightTab.commandUntilMs = 0;
     } else if (rd) {
       rightTab.direction = 1; rightTab.commandUntilMs = 0;
-    } else stopActuator(rightTab);
+    } else if (prevRightAny) {
+      stopActuator(rightTab);
+      logEvent("RIGHT physical buttons released: stopped");
+    }
 
     prevConflictLeft = lu && ld;
     prevConflictRight = ru && rd;
@@ -289,13 +301,8 @@ void handlePhysicalButtons() {
     stopAll("Physical movement inhibited in FAULT");
   }
 
-  if (prevAny && !any) {
-    stopActuator(leftTab);
-    stopActuator(rightTab);
-    applyOutputPins();
-    logEvent("Physical buttons released: outputs stopped");
-  }
-  prevAny = any;
+  prevLeftAny = leftAny;
+  prevRightAny = rightAny;
 }
 
 void setup() {

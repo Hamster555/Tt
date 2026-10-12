@@ -1,4 +1,4 @@
-name: Build ESP32-S3 firmware
+name: Build and simulate Trim Controller
 
 on:
   push:
@@ -9,6 +9,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      WOKWI_CLI_TOKEN: ${{ secrets.WOKWI_CLI_TOKEN }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/cache@v4
@@ -20,4 +22,13 @@ jobs:
         with:
           python-version: '3.x'
       - run: pip install platformio
-      - run: pio run -e esp32-s3-devkitc-1
+      - name: Compile ESP32-S3 firmware
+        run: pio run -e esp32-s3-devkitc-1
+      - name: Run Wokwi simulation
+        if: env.WOKWI_CLI_TOKEN != ''
+        uses: wokwi/wokwi-ci-action@v1
+        with:
+          token: ${{ secrets.WOKWI_CLI_TOKEN }}
+          path: /
+          timeout: 15000
+          expect_text: 'Trim controller Wokwi starter v0.1'

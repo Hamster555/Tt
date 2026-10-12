@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "author": "Trim Controller",
+  "editor": "wokwi",
+  "parts": [
+    {"type":"board-esp32-s3-devkitc-1","id":"esp","top":0,"left":0,"attrs":{}},
+    {"type":"wokwi-pushbutton","id":"btnLU","top":-95,"left":-220,"attrs":{"color":"green","label":"LEFT UP"}},
+    {"type":"wokwi-pushbutton","id":"btnLD","top":-25,"left":-220,"attrs":{"color":"green","label":"LEFT DOWN"}},
+    {"type":"wokwi-pushbutton","id":"btnRU","top":45,"left":-220,"attrs":{"color":"blue","label":"RIGHT UP"}},
+    {"type":"wokwi-pushbutton","id":"btnRD","top":115,"left":-220,"attrs":{"color":"blue","label":"RIGHT DOWN"}}
+  ],
+  "connections": [
+    ["btnLU:1.l","esp:4","green",[]],["btnLU:2.l","esp:GND","black",[]],
+    ["btnLD:1.l","esp:5","green",[]],["btnLD:2.l","esp:GND","black",[]],
+    ["btnRU:1.l","esp:6","blue",[]],["btnRU:2.l","esp:GND","black",[]],
+    ["btnRD:1.l","esp:7","blue",[]],["btnRD:2.l","esp:GND","black",[]]
+  ],
+  "dependencies": {}
+}

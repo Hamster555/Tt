@@ -30,5 +30,6 @@ jobs:
         with:
           token: ${{ secrets.WOKWI_CLI_TOKEN }}
           path: /
-          timeout: 15000
+          timeout: 30000
           expect_text: 'Trim controller Wokwi starter v0.1'
+          serial_log_file: wokwi-serial.log

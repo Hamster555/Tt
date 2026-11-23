@@ -22,6 +22,8 @@ jobs:
         with:
           python-version: '3.x'
       - run: pip install platformio
+      - name: Run host control-logic checks
+        run: g++ -std=c++17 -Wall -Wextra -Werror -Isrc test/control_logic_test.cpp -o /tmp/control_logic_test && /tmp/control_logic_test
       - name: Compile ESP32-S3 firmware
         run: pio run -e esp32-s3-devkitc-1
       - name: Install Wokwi CLI

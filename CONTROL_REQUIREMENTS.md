@@ -46,7 +46,7 @@ The names below are used by the prototype. They describe intended software behav
 
 ## Prototype acceptance checks
 
-These are behavior-level checks to implement in the regression suite. The existing CI build/Wokwi simulation currently checks startup only; these checks are not yet an automated test suite.
+These are behavior-level checks for the regression suite. CI currently runs a small host-side suite for pure direction-conflict, command-gating, and AUTO input-validity rules, then builds the firmware and runs Wokwi diagram lint/startup simulation. The full P-01 through P-10 matrix is not automated yet; P-11 and P-12 require physical hardware.
 
 | ID | Setup / action | Pass condition | Can Wokwi prove it? |
 |---|---|---|---|
@@ -80,4 +80,4 @@ Do not assign thresholds, current ratings, or automatic target positions until t
 
 The current Wokwi firmware has simulated mode names, four momentary button inputs, timed simulated commands, mock GPS validity, and simulated actuator positions. AUTO does not yet calculate trim commands from real speed, roll, pitch, or NMEA data. The Wokwi GPIO model is not the independent hardware manual override required above.
 
-The latest CI run passed firmware compilation, Wokwi diagram lint, and the Wokwi startup-output check. That confirms the simulation pipeline works; it does not prove P-11 or P-12.
+The latest CI run passed host control-rule checks, firmware compilation, Wokwi diagram lint, and the Wokwi startup-output check ([run 45241019073](https://github.com/Hamster555/Tt/actions/runs/45241019073)). That confirms the simulated software pipeline works; it does not prove every P-01 through P-10 behavior or hardware checks P-11/P-12.

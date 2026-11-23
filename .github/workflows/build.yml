@@ -42,10 +42,18 @@ jobs:
           if [ -n "$CI_HEAP_INTERVAL" ]; then heap_args+=(--heap-interval "$CI_HEAP_INTERVAL"); fi
           if [ -n "$CI_HEAP_MIN_FREE" ]; then heap_args+=(--heap-min-free "$CI_HEAP_MIN_FREE"); fi
           if [ -n "$CI_HEAP_CSV" ]; then heap_args+=(--heap-csv "$CI_HEAP_CSV"); fi
+          set +e
           wokwi-cli --timeout "30000" --expect-text "Trim controller Wokwi starter v0.1" \
             --diagram-file "diagram.json" \
             --fail-text "" --scenario "" "${GITHUB_WORKSPACE}/" \
             --serial-log-file "wokwi-serial.log" "${heap_args[@]}"
+          status=$?
+          set -e
+          if [ "$status" -ne 0 ]; then
+            echo "Wokwi simulation failed; serial output follows:"
+            if [ -f wokwi-serial.log ]; then cat wokwi-serial.log; else echo "No serial log was produced."; fi
+          fi
+          exit "$status"
         env:
           WOKWI_CLI_TOKEN: ${{ secrets.WOKWI_CLI_TOKEN }}
           FORCE_COLOR: 2

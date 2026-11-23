@@ -20,13 +20,15 @@ Develop software and hardware for a modular trim-tab controller for a roughly 6 
 
 ## Current implementation
 
+Current source branch: work/codex-trimtab-modules, latest code commit 36d859e (source only; no firmware release).
+
 - src/main.cpp is the Wokwi adapter. The shared ControlCore in src/control_logic.h is called by firmware and host tests.
 - Behavior is split into input_processing.h, mode_state.h, command_arbitration.h, actuator_simulation.h, and telemetry.h.
 - test/control_logic_test.cpp exercises the same state, command, input, timing, simulation, and telemetry paths used by firmware for P-01 through P-10. P-11 and P-12 remain physical bench checks only.
 - Wi-Fi startup is non-blocking. Local input handling runs every loop whether or not Wi-Fi is connected.
 - AUTO remains a validity-gated placeholder and does not calculate trim from boat data.
 - Earlier baseline CI run [45241019073](https://github.com/Hamster555/Tt/actions/runs/45241019073) passed, but predates this refactor.
-- CI run [45258585571](https://github.com/Hamster555/Tt/actions/runs/45258585571) failed at the P-10 host assertion before firmware build or Wokwi. Root cause: a zero-delta simulation tick at position 0 incorrectly treated an EXTEND command as a retract endpoint. Endpoint checks are now direction-specific; rerun CI on the follow-up commit.
+- CI run [45258585571](https://github.com/Hamster555/Tt/actions/runs/45258585571) exposed the P-10 endpoint bug; the fix uses direction-specific endpoint checks. CI run [45259694035](https://github.com/Hamster555/Tt/actions/runs/45259694035), attempt 2, passed P-01–P-10, ESP32-S3 build, Wokwi lint, and Wokwi simulation. Attempt 1 hit a Wokwi API transport close (code 1006); retry passed.
 - Local verification could not run on the Codex host: g++, pio, and wokwi-cli are unavailable, and WOKWI_CLI_TOKEN is not present locally.
 
 ## Project documents
@@ -41,9 +43,9 @@ Read these before changing hardware behavior:
 
 ## Next software work
 
-1. Run host tests, the ESP32-S3 build, Wokwi lint, and Wokwi simulation against this working tree; fix any compiler or runtime errors.
-2. Review the open variables listed in CONTROL_REQUIREMENTS.md and DESIGN_BASELINE.md without guessing their values.
-3. Keep P-11 and P-12 pending physical bench evidence. Do not describe the firmware as marine-ready.
+1. Resolve open software and hardware decisions in CONTROL_REQUIREMENTS.md, DESIGN_BASELINE.md, and ACTUATOR_DATA.md only from owner decisions, datasheets, and measurements.
+2. Gather exact actuator and vessel electrical data; no current draw or allowed 14 V charging range is confirmed for the candidate actuators.
+3. Plan and record physical P-11/P-12 bench validation after a real independent manual path and hardware interlocks are built. Do not describe the firmware as marine-ready.
 
 ## Hardware inputs still needed
 

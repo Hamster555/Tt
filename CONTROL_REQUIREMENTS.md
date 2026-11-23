@@ -50,7 +50,7 @@ The names below are used by the prototype. They describe intended software behav
 
 ## Prototype acceptance checks
 
-These are behavior-level checks for the regression suite. The host suite drives the same ControlCore called by firmware and covers P-01 through P-10. CI run 45258585571 exposed a P-10 simulation endpoint bug before the firmware/Wokwi steps; a direction-specific endpoint fix is in the follow-up commit and awaits rerun. CI also builds the firmware and runs Wokwi lint/startup simulation when WOKWI_CLI_TOKEN is configured. P-11 and P-12 remain physical-only checks. Local execution is unavailable because the Codex host lacks g++, PlatformIO, and Wokwi CLI.
+These are behavior-level checks for the regression suite. The host suite drives the same ControlCore called by firmware and covers P-01 through P-10. CI run [45259694035](https://github.com/Hamster555/Tt/actions/runs/45259694035), attempt 2, passed the host checks, ESP32-S3 build, Wokwi lint, and simulation. Attempt 1 hit a transient Wokwi transport close (code 1006); retry passed. P-11 and P-12 remain physical-only checks. Local execution is unavailable because the Codex host lacks g++, PlatformIO, and Wokwi CLI.
 
 | ID | Setup / action | Pass condition | Can Wokwi prove it? |
 |---|---|---|---|
@@ -85,4 +85,4 @@ Do not assign thresholds, current ratings, or automatic target positions until t
 
 The current Wokwi firmware has simulated mode names, four momentary button inputs, timed simulated commands, mock required-input validity (exposed as GPS), and simulated actuator positions. AUTO_REQUIRED_INPUTS is still TBD. AUTO does not calculate trim commands from real speed, roll, pitch, or NMEA data. The Wokwi GPIO model is not the independent hardware manual override required above.
 
-The last recorded green CI run before this refactor passed host control-rule checks, firmware compilation, Wokwi diagram lint, and the Wokwi startup-output check ([run 45241019073](https://github.com/Hamster555/Tt/actions/runs/45241019073)). It predates the current uncommitted edits and does not verify this refactor or prove hardware checks P-11/P-12.
+Current CI run [45259694035](https://github.com/Hamster555/Tt/actions/runs/45259694035), attempt 2, verifies the modular refactor with passing P-01–P-10 host checks, ESP32-S3 compilation, Wokwi diagram lint, and startup simulation. This does not prove hardware checks P-11/P-12.

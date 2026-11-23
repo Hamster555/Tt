@@ -50,7 +50,7 @@ The names below are used by the prototype. They describe intended software behav
 
 ## Prototype acceptance checks
 
-These are behavior-level checks for the regression suite. The host suite now drives the same ControlCore called by firmware and covers P-01 through P-10. CI also builds the firmware and runs Wokwi lint/startup simulation when WOKWI_CLI_TOKEN is configured. P-11 and P-12 remain physical-only checks. A local run of the expanded suite and build was not possible in the current Codex host because g++, PlatformIO, and Wokwi CLI are unavailable; the workflow has not yet run against these local edits.
+These are behavior-level checks for the regression suite. The host suite drives the same ControlCore called by firmware and covers P-01 through P-10. CI run 45258585571 exposed a P-10 simulation endpoint bug before the firmware/Wokwi steps; a direction-specific endpoint fix is in the follow-up commit and awaits rerun. CI also builds the firmware and runs Wokwi lint/startup simulation when WOKWI_CLI_TOKEN is configured. P-11 and P-12 remain physical-only checks. Local execution is unavailable because the Codex host lacks g++, PlatformIO, and Wokwi CLI.
 
 | ID | Setup / action | Pass condition | Can Wokwi prove it? |
 |---|---|---|---|

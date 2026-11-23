@@ -11,7 +11,7 @@ Scope: single-controller trim-tab prototype for a roughly 6 m planing boat. This
 | 2. Controller and interface choice | Provisional bench candidate and interface risks documented; no purchase decision | Confirm physical display readability, I/O expansion, mounting, and delivered cost |
 | 3. Actuator and power requirements | Waiting on actuator and vessel electrical data | Complete `ACTUATOR_DATA.md` from actual datasheets and measurements |
 | 4. Firmware structure | Shared testable modules are used by firmware and host tests; firmware remains a Wokwi prototype | Run target build and simulation against the modular changes; no vessel algorithm before its inputs/limits are set |
-| 5. Automated checks | Host coverage for P-01–P-10 is implemented against ControlCore; local execution unavailable on this host, and previous green CI predates these edits | Run host suite, firmware build, Wokwi lint and simulation on the current changes; preserve P-11/P-12 as physical-only |
+| 5. Automated checks | Host coverage for P-01–P-10 is implemented against ControlCore; CI run 45258585571 caught a P-10 endpoint bug before build/Wokwi; follow-up fix awaits rerun | Run host suite, firmware build, Wokwi lint and simulation on the follow-up commit; preserve P-11/P-12 as physical-only |
 | 6. Bench validation | Checklist prepared; not run | Record results against the selected actuators, driver, supply, and physical override circuit |
 | 7. Boat trials and BOM | Pending bench results and operator decisions | Review mounting, visibility, sealed enclosure, wiring, and trial plan; publish an itemized BOM with local delivered prices |
 
@@ -23,7 +23,7 @@ Scope: single-controller trim-tab prototype for a roughly 6 m planing boat. This
 - Made Wi-Fi startup non-blocking and kept local input servicing outside the Wi-Fi condition.
 - Corrected simulated command behavior: web motion is rejected outside MANUAL; HOLD/DEGRADED/FAULT inhibit monitored movement; leaving HOLD or clearing FAULT requires release and a fresh physical press.
 - The 1500 ms web limit and 10 second simulated travel are simulation constants only. Hardware motion duration, travel, input requirements, and position source remain TBD.
-- The earlier CI run [45241019073](https://github.com/Hamster555/Tt/actions/runs/45241019073) predates these changes. Current local verification could not run because no host C++ compiler, PlatformIO, Wokwi CLI, or local Wokwi token was available. Do not count the earlier run as evidence for this refactor.
+- The earlier CI run [45241019073](https://github.com/Hamster555/Tt/actions/runs/45241019073) predates these changes. CI run [45258585571](https://github.com/Hamster555/Tt/actions/runs/45258585571) failed at P-10 because a zero-delta extend tick at 0% was misclassified as retract endpoint; the endpoint condition is now direction-specific, pending rerun. Local verification cannot run because no host C++ compiler, PlatformIO, Wokwi CLI, or local Wokwi token is available.
 
 ## Provisional controller candidate
 

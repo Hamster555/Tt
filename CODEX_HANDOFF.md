@@ -25,8 +25,9 @@ Develop software and hardware for a modular trim-tab controller for a roughly 6 
 - test/control_logic_test.cpp exercises the same state, command, input, timing, simulation, and telemetry paths used by firmware for P-01 through P-10. P-11 and P-12 remain physical bench checks only.
 - Wi-Fi startup is non-blocking. Local input handling runs every loop whether or not Wi-Fi is connected.
 - AUTO remains a validity-gated placeholder and does not calculate trim from boat data.
-- The most recent recorded green CI run is the earlier baseline run [45241019073](https://github.com/Hamster555/Tt/actions/runs/45241019073); it predates these uncommitted edits. No workflow was triggered for the current working tree.
-- Local verification could not run on the Codex host: g++, pio, and wokwi-cli are unavailable, and WOKWI_CLI_TOKEN is not present locally. Re-run CI on these changes after preparing a review branch.
+- Earlier baseline CI run [45241019073](https://github.com/Hamster555/Tt/actions/runs/45241019073) passed, but predates this refactor.
+- CI run [45258585571](https://github.com/Hamster555/Tt/actions/runs/45258585571) failed at the P-10 host assertion before firmware build or Wokwi. Root cause: a zero-delta simulation tick at position 0 incorrectly treated an EXTEND command as a retract endpoint. Endpoint checks are now direction-specific; rerun CI on the follow-up commit.
+- Local verification could not run on the Codex host: g++, pio, and wokwi-cli are unavailable, and WOKWI_CLI_TOKEN is not present locally.
 
 ## Project documents
 

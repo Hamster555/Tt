@@ -24,12 +24,31 @@ jobs:
       - run: pip install platformio
       - name: Compile ESP32-S3 firmware
         run: pio run -e esp32-s3-devkitc-1
+      - name: Install Wokwi CLI
+        if: env.WOKWI_CLI_TOKEN != ''
+        run: |
+          curl --fail --location --retry 5 --retry-all-errors --retry-delay 2 \
+            --output /usr/local/bin/wokwi-cli \
+            https://github.com/wokwi/wokwi-cli/releases/download/v0.29.1/wokwi-cli-linuxstatic-x64
+          echo "3c9d6da007d008a3822ab468318037285440055132c59fd659d7306e40f14258  /usr/local/bin/wokwi-cli" | sha256sum --check
+          chmod +x /usr/local/bin/wokwi-cli
       - name: Run Wokwi simulation
         if: env.WOKWI_CLI_TOKEN != ''
-        uses: wokwi/wokwi-ci-action@v1
-        with:
-          token: ${{ secrets.WOKWI_CLI_TOKEN }}
-          path: /
-          timeout: 30000
-          expect_text: 'Trim controller Wokwi starter v0.1'
-          serial_log_file: wokwi-serial.log
+        run: |
+          heap_args=()
+          if [ -n "$CI_HEAP_INTERVAL" ]; then heap_args+=(--heap-interval "$CI_HEAP_INTERVAL"); fi
+          if [ -n "$CI_HEAP_MIN_FREE" ]; then heap_args+=(--heap-min-free "$CI_HEAP_MIN_FREE"); fi
+          if [ -n "$CI_HEAP_CSV" ]; then heap_args+=(--heap-csv "$CI_HEAP_CSV"); fi
+          wokwi-cli --timeout "30000" --expect-text "Trim controller Wokwi starter v0.1" \
+            --diagram-file "diagram.json" \
+            --fail-text "" --scenario "" "${GITHUB_WORKSPACE}/" \
+            --serial-log-file "wokwi-serial.log" "${heap_args[@]}"
+        env:
+          WOKWI_CLI_TOKEN: ${{ secrets.WOKWI_CLI_TOKEN }}
+          FORCE_COLOR: 2
+          CI_EXPECT_TEXT: Trim controller Wokwi starter v0.1
+          CI_FAIL_TEXT: ""
+          CI_HEAP_INTERVAL: ""
+          CI_HEAP_MIN_FREE: ""
+          CI_HEAP_CSV: ""
+          CI_ARGS: ""

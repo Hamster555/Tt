@@ -32,6 +32,9 @@ jobs:
             https://github.com/wokwi/wokwi-cli/releases/download/v0.29.1/wokwi-cli-linuxstatic-x64
           echo "3c9d6da007d008a3822ab468318037285440055132c59fd659d7306e40f14258  /usr/local/bin/wokwi-cli" | sha256sum --check
           chmod +x /usr/local/bin/wokwi-cli
+      - name: Validate Wokwi diagram
+        if: env.WOKWI_CLI_TOKEN != ''
+        run: wokwi-cli lint --ignore-warnings
       - name: Run Wokwi simulation
         if: env.WOKWI_CLI_TOKEN != ''
         run: |
@@ -52,3 +55,10 @@ jobs:
           CI_HEAP_MIN_FREE: ""
           CI_HEAP_CSV: ""
           CI_ARGS: ""
+      - name: Upload Wokwi serial log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wokwi-serial-log
+          path: wokwi-serial.log
+          if-no-files-found: ignore

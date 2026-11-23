@@ -8,12 +8,21 @@ Scope: single-controller trim-tab prototype for a roughly 6 m planing boat. This
 | Phase | Status | Exit condition |
 |---|---|---|
 | 1. Behavior contract | Complete as a software baseline | Open behavior variables below are resolved before automatic trim logic is enabled |
-| 2. Controller and interface choice | Provisional bench candidate identified | Confirm physical display readability, I/O expansion, mounting, and delivered cost |
-| 3. Actuator and power requirements | Blocked on actuator and vessel electrical data | Complete `ACTUATOR_DATA.md` from actual datasheets and measurements |
-| 4. Firmware structure | Prototype only | Separate input validation, mode/state handling, output arbitration, and telemetry; no vessel algorithm before its inputs/limits are set |
-| 5. Automated checks | Startup CI exists; behavior suite still required | CI passes named acceptance checks for commands, modes, stale data, and endpoints |
+| 2. Controller and interface choice | Provisional bench candidate and interface risks documented; no purchase decision | Confirm physical display readability, I/O expansion, mounting, and delivered cost |
+| 3. Actuator and power requirements | Waiting on actuator and vessel electrical data | Complete `ACTUATOR_DATA.md` from actual datasheets and measurements |
+| 4. Firmware structure | Shared pure rules extracted; firmware remains a Wokwi prototype | Separate input validation, mode/state handling, output arbitration, and telemetry; no vessel algorithm before its inputs/limits are set |
+| 5. Automated checks | Host control-rule checks, firmware build, diagram lint, and Wokwi startup check pass in CI; broader acceptance coverage remains | Add named endpoint/state-transition checks and preserve hardware-only checks for bench validation |
 | 6. Bench validation | Checklist prepared; not run | Record results against the selected actuators, driver, supply, and physical override circuit |
 | 7. Boat trials and BOM | Pending bench results and operator decisions | Review mounting, visibility, sealed enclosure, wiring, and trial plan; publish an itemized BOM with local delivered prices |
+
+
+## Work completed in the current pass
+
+- Added shared pure logic for conflicting directions, command gating, AUTO input validity, and degraded transition on required-input loss.
+- Added host-side regression assertions and made CI compile/run them before the ESP32 firmware build.
+- Tightened the simulator HTTP endpoints to reject malformed tab/direction/mode requests, zero-duration motion, and report rejected mode commands with an error response.
+- CI run for the firmware and host-check changes passed: [run 45241019073](https://github.com/Hamster555/Tt/actions/runs/45241019073). It included host control-rule checks, firmware compilation, Wokwi diagram lint, and Wokwi startup simulation.
+- The simulator remains a single-file application and AUTO still has no boat-control algorithm. The current host tests exercise pure helper rules; they do not yet cover the full web API, actuator timing, power interruption, hardwired override, or marine behavior.
 
 ## Provisional controller candidate
 

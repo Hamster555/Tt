@@ -31,34 +31,38 @@ The names below are used by the prototype. They describe intended software behav
 |---|---|---|
 | MANUAL | Automatic motion is disabled. Operator commands may move either simulated tab, subject to direction interlocks and command limits. | Agreed |
 | AUTO | The controller may issue automatic motion only while the inputs required by the selected algorithm are valid. | Agreed; algorithm open |
-| HOLD | Stop software-commanded motion and hold outputs off until the operator selects another mode. | Prototype behavior; confirm final user meaning |
-| DEGRADED | Disable automatic motion when a required input becomes invalid. Show the cause. Do not resume AUTO automatically when data returns. | Agreed direction; exact fallback and manual permissions open |
+| HOLD | Stop software-commanded motion and hold outputs off until the operator selects another mode. Firmware requires the physical input to be released before accepting a fresh press after exit. | Prototype behavior; final operator meaning still open |
+| DEGRADED | Disable automatic motion when a required input becomes invalid. Show the cause. Do not resume AUTO automatically when data returns. Monitored firmware movement is inhibited pending the manual-permission decision; the independent hardwired path is outside this simulation. | Agreed direction; exact fallback and manual permissions open |
 | FAULT | Stop software-controlled motion and report the fault. Clearing a fault returns to MANUAL and must not resume previous commands. | Prototype behavior; hardware fault policy open |
 
 ### Command priorities
 
 - A physical local input cancels AUTO before commanding manual movement.
+- Web motion requests are rejected while AUTO is active; the firmware does not silently change mode on behalf of a web request. Final web-versus-local priority remains an open interface decision.
+- Any explicit mode change stops a pending software command; AUTO has no motion algorithm yet.
 - If both directions are requested for one tab, that tab stops; it must not choose one direction arbitrarily.
 - A web command is bounded by a configured duration. Expiry stops the commanded motion.
 - Entering HOLD, DEGRADED, or FAULT stops any software-controlled motion.
 - Clearing a fault or restoring sensor validity does not restart motion automatically; a fresh operator action is required.
+- A mode request cannot clear an active FAULT; only the fault-clear action returns the prototype to MANUAL.
+- Leaving HOLD or clearing FAULT while a physical button remains held does not start motion; the button must first be released and pressed again.
 - The independent hardwired manual path remains available when the ESP32 is unpowered or failed, subject to the electrical protection design.
 
 ## Prototype acceptance checks
 
-These are behavior-level checks for the regression suite. CI currently runs a small host-side suite for pure direction-conflict, command-gating, and AUTO input-validity rules, then builds the firmware and runs Wokwi diagram lint/startup simulation. The full P-01 through P-10 matrix is not automated yet; P-11 and P-12 require physical hardware.
+These are behavior-level checks for the regression suite. The host suite now drives the same ControlCore called by firmware and covers P-01 through P-10. CI also builds the firmware and runs Wokwi lint/startup simulation when WOKWI_CLI_TOKEN is configured. P-11 and P-12 remain physical-only checks. A local run of the expanded suite and build was not possible in the current Codex host because g++, PlatformIO, and Wokwi CLI are unavailable; the workflow has not yet run against these local edits.
 
 | ID | Setup / action | Pass condition | Can Wokwi prove it? |
 |---|---|---|---|
 | P-01 | Boot or reset the controller | All software motor outputs start off; no prior command resumes. | Yes |
 | P-02 | Request UP or DOWN for one tab | Only the requested direction is active for that tab. | Yes |
 | P-03 | Request both directions for the same tab | Both outputs are off; a conflict event is reported. | Yes |
-| P-04 | Issue a timed web command | The command stops at its configured deadline or earlier at an endpoint/stop request. | Yes |
+| P-04 | Issue a timed web command | The simulated command stops at its deadline or earlier at a simulated endpoint/stop request. The current 1500 ms API ceiling is a simulator-only value, not an approved hardware movement limit. | Yes |
 | P-05 | Press a physical input while in AUTO | AUTO is cancelled before manual movement is applied. | Yes |
 | P-06 | Enter HOLD during movement | All software outputs stop; no motion resumes when HOLD is exited. | Yes |
 | P-07 | Inject FAULT during movement | All software outputs stop; clearing FAULT returns to MANUAL with outputs off. | Yes |
-| P-08 | Invalidate GPS while AUTO is active | AUTO stops and the controller enters DEGRADED; restoring GPS alone does not restart AUTO. | Yes |
-| P-09 | Request AUTO while a required input is invalid | AUTO is denied; outputs remain off and the invalid input is visible in status. | Yes |
+| P-08 | Invalidate the simulated required-input flag while AUTO is active | AUTO stops and the controller enters DEGRADED; restoring validity alone does not restart AUTO. GPS is currently the sole simulated placeholder, not the final AUTO_REQUIRED_INPUTS definition. | Yes |
+| P-09 | Request AUTO while a required input is invalid | AUTO is denied; outputs remain off and the invalid-input flag is visible in status. | Yes |
 | P-10 | Lose Wi-Fi while using local simulation buttons | Web access may disappear, but the local input loop continues. | Yes, for simulation behavior only |
 | P-11 | Disconnect, reset, or freeze the ESP32 while a physical manual switch is operated | The hardwired manual path still operates, with protection and interlocks intact. | **No — physical bench test required** |
 | P-12 | Request opposite directions through independent control paths at the same time | Hardware interlocking prevents both directions reaching one actuator, even with ESP32 failure. | **No — physical bench test required** |
@@ -73,11 +77,12 @@ These are behavior-level checks for the regression suite. CI currently runs a sm
 6. **Motion bounds:** permitted travel, maximum drive time, position feedback versus timed estimate, and whether a displayed position is measured or estimated.
 7. **Fault/manual relationship:** which electrical faults disable the independent manual path and which leave it available.
 8. **Hardware selection:** exact display/ESP32 board, IMU, GPS, optional CAN/NMEA interface, connectors, and mounting/orientation.
+9. **Software interaction policy:** final WEB_COMMAND_DURING_AUTO_POLICY, DEGRADED_MANUAL_POLICY, and HOLD_MEANING. Current prototype behavior rejects web motion in AUTO and inhibits monitored firmware motion in DEGRADED.
 
 Do not assign thresholds, current ratings, or automatic target positions until the relevant boat and component data are available.
 
 ## Current implementation boundary
 
-The current Wokwi firmware has simulated mode names, four momentary button inputs, timed simulated commands, mock GPS validity, and simulated actuator positions. AUTO does not yet calculate trim commands from real speed, roll, pitch, or NMEA data. The Wokwi GPIO model is not the independent hardware manual override required above.
+The current Wokwi firmware has simulated mode names, four momentary button inputs, timed simulated commands, mock required-input validity (exposed as GPS), and simulated actuator positions. AUTO_REQUIRED_INPUTS is still TBD. AUTO does not calculate trim commands from real speed, roll, pitch, or NMEA data. The Wokwi GPIO model is not the independent hardware manual override required above.
 
-The latest CI run passed host control-rule checks, firmware compilation, Wokwi diagram lint, and the Wokwi startup-output check ([run 45241019073](https://github.com/Hamster555/Tt/actions/runs/45241019073)). That confirms the simulated software pipeline works; it does not prove every P-01 through P-10 behavior or hardware checks P-11/P-12.
+The last recorded green CI run before this refactor passed host control-rule checks, firmware compilation, Wokwi diagram lint, and the Wokwi startup-output check ([run 45241019073](https://github.com/Hamster555/Tt/actions/runs/45241019073)). It predates the current uncommitted edits and does not verify this refactor or prove hardware checks P-11/P-12.

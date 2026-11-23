@@ -20,11 +20,13 @@ Develop software and hardware for a modular trim-tab controller for a roughly 6 
 
 ## Current implementation
 
-- `src/main.cpp` is a Wokwi starter. Telemetry and tab position are simulated; AUTO does not calculate trim from boat data.
-- `src/control_logic.h` contains pure direction-conflict, command-gating, AUTO input-validity, and degraded-transition rules.
-- `test/control_logic_test.cpp` exercises those pure rules. CI runs the host checks, firmware build, Wokwi diagram lint, and startup simulation.
-- Web simulator endpoints now validate tab, direction, mode, and nonzero motion duration and report rejected commands.
-- CI passed host checks, ESP32-S3 compilation, diagram lint, and Wokwi startup simulation in run [45241019073](https://github.com/Hamster555/Tt/actions/runs/45241019073).
+- src/main.cpp is the Wokwi adapter. The shared ControlCore in src/control_logic.h is called by firmware and host tests.
+- Behavior is split into input_processing.h, mode_state.h, command_arbitration.h, actuator_simulation.h, and telemetry.h.
+- test/control_logic_test.cpp exercises the same state, command, input, timing, simulation, and telemetry paths used by firmware for P-01 through P-10. P-11 and P-12 remain physical bench checks only.
+- Wi-Fi startup is non-blocking. Local input handling runs every loop whether or not Wi-Fi is connected.
+- AUTO remains a validity-gated placeholder and does not calculate trim from boat data.
+- The most recent recorded green CI run is the earlier baseline run [45241019073](https://github.com/Hamster555/Tt/actions/runs/45241019073); it predates these uncommitted edits. No workflow was triggered for the current working tree.
+- Local verification could not run on the Codex host: g++, pio, and wokwi-cli are unavailable, and WOKWI_CLI_TOKEN is not present locally. Re-run CI on these changes after preparing a review branch.
 
 ## Project documents
 
@@ -38,14 +40,22 @@ Read these before changing hardware behavior:
 
 ## Next software work
 
-1. Expand host/simulation coverage for acceptance checks P-01 through P-10. Keep hardware-only P-11 and P-12 clearly marked as requiring physical tests.
-2. Refactor the prototype into input validation, mode/state management, command arbitration, actuator simulation, and telemetry modules.
-3. Keep AUTO disabled as a real boat algorithm until required sensors, speed/turn/low-speed policies, actuator travel, and safe movement limits are supplied.
-4. Keep CI green and distinguish software simulation evidence from bench/vessel evidence.
+1. Run host tests, the ESP32-S3 build, Wokwi lint, and Wokwi simulation against this working tree; fix any compiler or runtime errors.
+2. Review the open variables listed in CONTROL_REQUIREMENTS.md and DESIGN_BASELINE.md without guessing their values.
+3. Keep P-11 and P-12 pending physical bench evidence. Do not describe the firmware as marine-ready.
 
 ## Hardware inputs still needed
 
-Fill `ACTUATOR_DATA.md` with exact actuator models, supply range, running/stall current, stroke/travel, end switches or position feedback, duty cycle, route lengths, and the boat's electrical system. Then review the display mounting/sunlight conditions, manual panel layout, degraded-mode permissions, and whether the approximately US$100 electronics target excludes enclosure and shipping.
+Fill ACTUATOR_DATA.md with exact actuator models, supply range, running/stall current, stroke/travel, end switches or position feedback, duty cycle, route lengths, and the boat's electrical system. Then review display mounting/sunlight conditions, manual panel layout, degraded-mode permissions, web-command priority in AUTO, and whether the approximately US$100 electronics target excludes enclosure and shipping.
+
+## Current unresolved software variables
+
+- AUTO_REQUIRED_INPUTS: GPS validity is currently only a simulation placeholder.
+- WEB_COMMAND_DURING_AUTO_POLICY: prototype rejects web movement in AUTO; confirm final web/local semantics.
+- DEGRADED_MANUAL_POLICY: prototype inhibits monitored firmware movement in DEGRADED; independent hardwired manual control is not simulated.
+- MAX_SOFTWARE_COMMAND_MS: TBD from actuator travel and bench data. The 1500 ms limit is only a simulator API ceiling.
+- POSITION_SOURCE: simulated percentage is not measured actuator position.
+- HOLD_MEANING: prototype stops outputs and requires release plus a fresh press after returning to MANUAL; confirm operator meaning.
 
 ## Continuity note
 

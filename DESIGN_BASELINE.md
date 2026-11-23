@@ -10,19 +10,20 @@ Scope: single-controller trim-tab prototype for a roughly 6 m planing boat. This
 | 1. Behavior contract | Complete as a software baseline | Open behavior variables below are resolved before automatic trim logic is enabled |
 | 2. Controller and interface choice | Provisional bench candidate and interface risks documented; no purchase decision | Confirm physical display readability, I/O expansion, mounting, and delivered cost |
 | 3. Actuator and power requirements | Waiting on actuator and vessel electrical data | Complete `ACTUATOR_DATA.md` from actual datasheets and measurements |
-| 4. Firmware structure | Shared pure rules extracted; firmware remains a Wokwi prototype | Separate input validation, mode/state handling, output arbitration, and telemetry; no vessel algorithm before its inputs/limits are set |
-| 5. Automated checks | Host control-rule checks, firmware build, diagram lint, and Wokwi startup check pass in CI; broader acceptance coverage remains | Add named endpoint/state-transition checks and preserve hardware-only checks for bench validation |
+| 4. Firmware structure | Shared testable modules are used by firmware and host tests; firmware remains a Wokwi prototype | Run target build and simulation against the modular changes; no vessel algorithm before its inputs/limits are set |
+| 5. Automated checks | Host coverage for P-01–P-10 is implemented against ControlCore; local execution unavailable on this host, and previous green CI predates these edits | Run host suite, firmware build, Wokwi lint and simulation on the current changes; preserve P-11/P-12 as physical-only |
 | 6. Bench validation | Checklist prepared; not run | Record results against the selected actuators, driver, supply, and physical override circuit |
 | 7. Boat trials and BOM | Pending bench results and operator decisions | Review mounting, visibility, sealed enclosure, wiring, and trial plan; publish an itemized BOM with local delivered prices |
 
 
 ## Work completed in the current pass
 
-- Added shared pure logic for conflicting directions, command gating, AUTO input validity, and degraded transition on required-input loss.
-- Added host-side regression assertions and made CI compile/run them before the ESP32 firmware build.
-- Tightened the simulator HTTP endpoints to reject malformed tab/direction/mode requests, zero-duration motion, and report rejected mode commands with an error response.
-- CI run for the firmware and host-check changes passed: [run 45241019073](https://github.com/Hamster555/Tt/actions/runs/45241019073). It included host control-rule checks, firmware compilation, Wokwi diagram lint, and Wokwi startup simulation.
-- The simulator remains a single-file application and AUTO still has no boat-control algorithm. The current host tests exercise pure helper rules; they do not yet cover the full web API, actuator timing, power interruption, hardwired override, or marine behavior.
+- Split the shared prototype into input processing, mode/state handling, command arbitration, simulated actuator timing, and telemetry modules. Firmware and host tests use the same ControlCore.
+- Added regression coverage for P-01–P-10, including mode transitions, fault clear, input loss, timed expiry, simulated endpoint stops, and local inputs independent of Wi-Fi. P-11/P-12 remain physical-only.
+- Made Wi-Fi startup non-blocking and kept local input servicing outside the Wi-Fi condition.
+- Corrected simulated command behavior: web motion is rejected outside MANUAL; HOLD/DEGRADED/FAULT inhibit monitored movement; leaving HOLD or clearing FAULT requires release and a fresh physical press.
+- The 1500 ms web limit and 10 second simulated travel are simulation constants only. Hardware motion duration, travel, input requirements, and position source remain TBD.
+- The earlier CI run [45241019073](https://github.com/Hamster555/Tt/actions/runs/45241019073) predates these changes. Current local verification could not run because no host C++ compiler, PlatformIO, Wokwi CLI, or local Wokwi token was available. Do not count the earlier run as evidence for this refactor.
 
 ## Provisional controller candidate
 
@@ -77,7 +78,7 @@ Do not close the budget or buy the power stage until the TBD rows are priced. If
 
 ## Behavior variables before AUTO is enabled
 
-These are design inputs, not questions that block software scaffolding:
+These are design inputs and unresolved policies, not values to infer:
 
 - `AUTO_REQUIRED_INPUTS`: valid/fresh sensors and their per-mode requirements.
 - `GPS_LOSS_POLICY`: stop automatic commands, enter DEGRADED, require a fresh operator action before AUTO resumes.
@@ -89,6 +90,8 @@ These are design inputs, not questions that block software scaffolding:
 - `POSITION_SOURCE`: measured feedback or labeled timed estimate; never present an estimate as a measurement.
 - `HOLD_MEANING`: outputs off until an explicit new operator action (baseline).
 - `FAULT_CLEAR_POLICY`: fault source absent and operator acknowledgement; return to MANUAL with outputs off.
+- `WEB_COMMAND_DURING_AUTO_POLICY`: current prototype rejects web motion in AUTO pending confirmation of final web/local priority.
+- `DEGRADED_MANUAL_POLICY`: current prototype inhibits monitored firmware motion; physical bypass remains independent and is not represented by Wokwi buttons.
 
 No automatic target positions, thresholds, current ratings, wire sizes, or fuse values are assigned here.
 

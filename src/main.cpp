@@ -12,6 +12,8 @@
 #include <WiFi.h>
 #include <WebServer.h>
 
+#include "control_logic.h"
+
 static const int PIN_LEFT_UP    = 4;
 static const int PIN_LEFT_DOWN  = 5;
 static const int PIN_RIGHT_UP   = 6;
@@ -91,10 +93,10 @@ void stopAll(const String& reason) {
   logEvent(reason);
 }
 
-void commandActuator(Actuator& a, int dir, unsigned long durationMs, const String& label) {
-  if (mode == MODE_FAULT || mode == MODE_DEGRADED || mode == MODE_HOLD) {
+bool commandActuator(Actuator& a, int dir, unsigned long durationMs, const String& label) {
+  if (!trimcontrol::softwareCommandAllowed(mode == MODE_HOLD, mode == MODE_DEGRADED, mode == MODE_FAULT)) {
     logEvent("Command rejected in " + String(modeName(mode)));
-    return;
+    return false;
   }
   if (dir == 0) {
     stopActuator(a);
@@ -104,10 +106,11 @@ void commandActuator(Actuator& a, int dir, unsigned long durationMs, const Strin
   }
   applyOutputPins();
   logEvent(label);
+  return true;
 }
 
 void setMode(Mode next) {
-  if (next == MODE_AUTO && !gpsValid) {
+  if (next == MODE_AUTO && !trimcontrol::autoStartAllowed(gpsValid)) {
     mode = MODE_DEGRADED;
     autoEnabled = false;
     stopAll("AUTO denied: GPS invalid");
@@ -216,23 +219,35 @@ void setupWeb() {
   server.on("/api/state", HTTP_GET, [](){ sendState(); });
   server.on("/api/cmd", HTTP_GET, [](){
     String tab = server.arg("tab"), dir = server.arg("dir");
+    if ((tab != "left" && tab != "right") || (dir != "up" && dir != "down" && dir != "stop")) {
+      server.send(400, "application/json", "{\"ok\":false,\"error\":\"invalid tab or direction\"}");
+      return;
+    }
     int d = dir == "up" ? -1 : dir == "down" ? 1 : 0;
     unsigned long ms = constrain(server.arg("ms").toInt(), 0, 1500);
+    if (d != 0 && ms == 0) {
+      server.send(400, "application/json", "{\"ok\":false,\"error\":\"motion duration must be positive\"}");
+      return;
+    }
     if (mode == MODE_AUTO) setMode(MODE_MANUAL); // manual action cancels AUTO
-    if (tab == "left") commandActuator(leftTab, d, ms, "Web command left " + dir);
-    else if (tab == "right") commandActuator(rightTab, d, ms, "Web command right " + dir);
-    server.send(200, "application/json", "{\"ok\":true}");
+    Actuator& actuator = tab == "left" ? leftTab : rightTab;
+    bool accepted = commandActuator(actuator, d, ms, "Web command " + tab + " " + dir);
+    server.send(accepted ? 200 : 409, "application/json", accepted ? "{\"ok\":true}" : "{\"ok\":false,\"error\":\"command rejected in current mode\"}");
   });
   server.on("/api/mode", HTTP_GET, [](){
     String v = server.arg("value");
     if (v == "manual") setMode(MODE_MANUAL);
     else if (v == "hold") setMode(MODE_HOLD);
     else if (v == "auto") setMode(MODE_AUTO);
+    else {
+      server.send(400, "application/json", "{\"ok\":false,\"error\":\"invalid mode\"}");
+      return;
+    }
     server.send(200, "application/json", "{\"ok\":true}");
   });
   server.on("/api/gps", HTTP_GET, [](){
     gpsValid = server.arg("valid") == "1";
-    if (!gpsValid && mode == MODE_AUTO) {
+    if (trimcontrol::shouldDegradeOnInputLoss(mode == MODE_AUTO, gpsValid)) {
       mode = MODE_DEGRADED; autoEnabled = false;
       stopAll("GPS invalid: AUTO stopped");
     } else logEvent(String("GPS valid=") + (gpsValid ? "true" : "false"));
@@ -264,23 +279,15 @@ void handlePhysicalButtons() {
   }
 
   if (mode != MODE_FAULT) {
-    if (lu && ld) {
-      stopActuator(leftTab);
-      if (!prevConflictLeft) logEvent("Conflicting LEFT buttons: stopped");
-    } else if (lu) {
-      leftTab.direction = -1; leftTab.commandUntilMs = 0;
-    } else if (ld) {
-      leftTab.direction = 1; leftTab.commandUntilMs = 0;
-    } else stopActuator(leftTab);
+    leftTab.direction = trimcontrol::resolveDirections(lu, ld);
+    if (leftTab.direction == 0) stopActuator(leftTab);
+    else leftTab.commandUntilMs = 0;
+    if (lu && ld && !prevConflictLeft) logEvent("Conflicting LEFT buttons: stopped");
 
-    if (ru && rd) {
-      stopActuator(rightTab);
-      if (!prevConflictRight) logEvent("Conflicting RIGHT buttons: stopped");
-    } else if (ru) {
-      rightTab.direction = -1; rightTab.commandUntilMs = 0;
-    } else if (rd) {
-      rightTab.direction = 1; rightTab.commandUntilMs = 0;
-    } else stopActuator(rightTab);
+    rightTab.direction = trimcontrol::resolveDirections(ru, rd);
+    if (rightTab.direction == 0) stopActuator(rightTab);
+    else rightTab.commandUntilMs = 0;
+    if (ru && rd && !prevConflictRight) logEvent("Conflicting RIGHT buttons: stopped");
 
     prevConflictLeft = lu && ld;
     prevConflictRight = ru && rd;

@@ -6,10 +6,11 @@ This repository contains the trim-tab controller project for a roughly 6 m plani
 
 Before changing the project, read these files in order:
 
-1. `CONTROL_REQUIREMENTS.md` — agreed behavior and acceptance checks.
-2. `DESIGN_BASELINE.md` — phase status, provisional controller candidate, and unresolved design variables.
-3. `ACTUATOR_DATA.md` — hardware and vessel data still required before power sizing.
-4. `BENCH_VALIDATION.md` — physical checks; unchecked items are not passed.
+1. `CODEX_HANDOFF.md` — current progress, next software work, and missing hardware inputs.
+2. `CONTROL_REQUIREMENTS.md` — agreed behavior and acceptance checks.
+3. `DESIGN_BASELINE.md` — phase status, provisional controller candidate, and unresolved design variables.
+4. `ACTUATOR_DATA.md` — hardware and vessel data still required before power sizing.
+5. `BENCH_VALIDATION.md` — physical checks; unchecked items are not passed.
 
 Use the documents as the current project handoff. If they conflict, do not guess; preserve the safer constraint and record the conflict.
 
